@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres
+    platform: linux/amd64
+    environment:
+      - POSTGRES_USER=akdb
+      - POSTGRES_PASSWORD=9516623438
+      - POSTGRES_DB=cr8s
+    command: ["postgres", "-c", "log_statement=all"]
+  
+  redis:
+    image: redis:latest
+
+  app:
+    build: .
+    environment:
+      - DATABASE_URL=postgres://akdb:9516623438@postgres/cr8s
+      - ROCKET_DATABASES={postgres={url=postgres://akdb:9516623438@postgres/cr8s}}
+    ports:
+      - 8000:8000
+    volumes:
+      - ./:/app/
+
+ 
