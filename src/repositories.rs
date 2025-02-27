@@ -2,6 +2,10 @@ use crate::{models::*, schema::*};
 
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rocket_db_pools::deadpool_redis::{
+    self,
+    redis::{AsyncCommands, RedisError},
+};
 
 pub struct RustaceanRepository;
 
@@ -173,5 +177,23 @@ impl RoleRepository {
 
     async fn find_by_ids(c: &mut AsyncPgConnection, ids: Vec<i32>) -> QueryResult<Vec<Role>> {
         roles::table.filter(roles::id.eq_any(ids)).load(c).await
+    }
+}
+
+pub struct SessionRepository;
+impl SessionRepository {
+    pub async fn create(
+        cache: &mut deadpool_redis::Connection,
+        session_id: String,
+        user_id: i32,
+    ) -> Result<(), RedisError> {
+        cache
+            .set_ex::<String, i32, ()>(
+                format!("sessions/{}", session_id),
+                user_id,
+                3 * 60 * 60, /*3h*/
+            )
+            .await?;
+        Ok(())
     }
 }
