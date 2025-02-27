@@ -8,7 +8,7 @@ async fn main() {
         .mount(
             "/",
             rocket::routes![
-                cr8s::rocket_routes::auth::login,
+                cr8s::rocket_routes::authorization::login,
                 cr8s::rocket_routes::rustaceans::get_rustaceans,
                 cr8s::rocket_routes::rustaceans::get_rustacean,
                 cr8s::rocket_routes::rustaceans::crate_rustacean,
