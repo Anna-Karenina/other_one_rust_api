@@ -5,7 +5,7 @@ pub mod common;
 #[test]
 fn test_get_rustaceans() {
     //SETUP
-    let client = Client::new();
+    let client = common::get_client_with_logged_in_admin();
     let rustacean1 = common::create_test_rustacean(&client);
     let rustacean2 = common::create_test_rustacean(&client);
 
@@ -27,7 +27,7 @@ fn test_get_rustaceans() {
 
 #[test]
 fn test_create_rustaceans() {
-    let client = Client::new();
+    let client = common::get_client_with_logged_in_admin();
     let respose = client
         .post(format!("{}/rustaceans", common::APP_HOST))
         .json(&json!({
@@ -53,7 +53,7 @@ fn test_create_rustaceans() {
 
 #[test]
 fn test_get_rustacean() {
-    let client = Client::new();
+    let client = common::get_client_with_logged_in_admin();
     let rustacean = common::create_test_rustacean(&client);
 
     let response = client
@@ -82,7 +82,7 @@ fn test_get_rustacean() {
 
 #[test]
 fn test_update_rustacean() {
-    let client = Client::new();
+    let client = common::get_client_with_logged_in_admin();
     let rustacean = common::create_test_rustacean(&client);
 
     let response = client
@@ -112,7 +112,7 @@ fn test_update_rustacean() {
 
 #[test]
 fn test_delete_rustacean() {
-    let client = Client::new();
+    let client = common::get_client_with_logged_in_admin();
     let rustacean = common::create_test_rustacean(&client);
 
     let response = client

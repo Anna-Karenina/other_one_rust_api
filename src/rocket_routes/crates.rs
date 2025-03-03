@@ -1,3 +1,4 @@
+use crate::models::User;
 use crate::rocket_routes::{server_error, DbConn};
 use crate::{
     models::{Crate, NewCrate},
@@ -11,7 +12,7 @@ use rocket::{
 use rocket_db_pools::Connection;
 
 #[rocket::get("/crates")]
-pub async fn get_crates(mut db: Connection<DbConn>) -> Result<Value, Custom<Value>> {
+pub async fn get_crates(mut db: Connection<DbConn>, _user: User) -> Result<Value, Custom<Value>> {
     CrateRepository::find_all(&mut db, 100)
         .await
         .map(|r| json!(r))
@@ -19,7 +20,11 @@ pub async fn get_crates(mut db: Connection<DbConn>) -> Result<Value, Custom<Valu
 }
 
 #[rocket::get("/crates/<id>")]
-pub async fn get_crate(mut db: Connection<DbConn>, id: i32) -> Result<Value, Custom<Value>> {
+pub async fn get_crate(
+    mut db: Connection<DbConn>,
+    id: i32,
+    _user: User,
+) -> Result<Value, Custom<Value>> {
     CrateRepository::find(&mut db, id)
         .await
         .map(|r| json!(r))
@@ -33,6 +38,7 @@ pub async fn get_crate(mut db: Connection<DbConn>, id: i32) -> Result<Value, Cus
 pub async fn crate_crate(
     mut db: Connection<DbConn>,
     new_crate: Json<NewCrate>,
+    _user: User,
 ) -> Result<Custom<Value>, Custom<Value>> {
     CrateRepository::create(&mut db, new_crate.into_inner())
         .await
@@ -45,6 +51,7 @@ pub async fn update_crate(
     mut db: Connection<DbConn>,
     id: i32,
     u_crate: Json<Crate>,
+    _user: User,
 ) -> Result<Value, Custom<Value>> {
     CrateRepository::update(&mut db, id, u_crate.into_inner())
         .await
@@ -59,6 +66,7 @@ pub async fn update_crate(
 pub async fn delete_crates(
     mut db: Connection<DbConn>,
     id: i32,
+    _user: User,
 ) -> Result<NoContent, Custom<Value>> {
     CrateRepository::delete(&mut db, id)
         .await

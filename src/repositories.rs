@@ -93,6 +93,10 @@ impl UserRepository {
             .await
     }
 
+    pub async fn find_by_id(c: &mut AsyncPgConnection, id: i32) -> QueryResult<User> {
+        users::table.find(id).get_result(c).await
+    }
+
     pub async fn create_user(
         c: &mut AsyncPgConnection,
         user: NewUser,

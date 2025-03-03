@@ -6,7 +6,7 @@ pub mod common;
 
 #[test]
 fn test_login() {
-    let output = Command::new("cargo")
+    Command::new("cargo")
         .arg("run")
         .arg("--bin")
         .arg("cli")
