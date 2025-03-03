@@ -1,13 +1,15 @@
-use reqwest::{blocking::Client, StatusCode};
+use reqwest::StatusCode;
 use serde_json::{json, Value};
 
 pub mod common;
 
 #[test]
 fn test_create_crate() {
-    let client = Client::new();
+    //Setup
+    let client = common::get_client_with_logged_in_admin();
     let rustacean = common::create_test_rustacean(&client);
 
+    //Test
     let response = client
         .post(format!("{}/crates", common::APP_HOST))
         .json(&json!({
@@ -37,15 +39,19 @@ fn test_create_crate() {
         })
     );
 
+    //Cleanup
     common::delete_test_crate(&client, u_crate);
     common::delete_test_rustacean(&client, rustacean);
 }
 
 #[test]
 fn test_get_crate() {
-    let client = Client::new();
+    // Setup
+    let client = common::get_client_with_logged_in_admin();
     let rustacean = common::create_test_rustacean(&client);
     let u_crate = common::create_test_crate(&client, &rustacean);
+
+    //Test
 
     let response = client
         .get(format!("{}/crates/{}", common::APP_HOST, u_crate["id"]))
@@ -74,7 +80,7 @@ fn test_get_crate() {
 
 #[test]
 fn test_update_crate() {
-    let client = Client::new();
+    let client = common::get_client_with_logged_in_admin();
     let rustacean = common::create_test_rustacean(&client);
     let rustacean2 = common::create_test_rustacean(&client);
     let u_crate = common::create_test_crate(&client, &rustacean);
@@ -143,7 +149,7 @@ fn test_update_crate() {
 
 #[test]
 fn test_delete_crate() {
-    let client = Client::new();
+    let client = common::get_client_with_logged_in_admin();
     let rustacean = common::create_test_rustacean(&client);
     let u_crate = common::create_test_crate(&client, &rustacean);
 
@@ -159,7 +165,7 @@ fn test_delete_crate() {
 #[test]
 fn test_get_crates() {
     //SETUP
-    let client = Client::new();
+    let client = common::get_client_with_logged_in_admin();
     let rustacean = common::create_test_rustacean(&client);
     let u_crate = common::create_test_crate(&client, &rustacean);
     let b_crate = common::create_test_crate(&client, &rustacean);

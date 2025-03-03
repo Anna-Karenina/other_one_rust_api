@@ -1,7 +1,14 @@
 use crate::{models::*, schema::*};
 
-use diesel::prelude::*;
+use diesel::{
+    dsl::{now, IntervalDsl},
+    prelude::*,
+};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rocket_db_pools::deadpool_redis::{
+    self,
+    redis::{AsyncCommands, RedisError},
+};
 
 pub struct RustaceanRepository;
 
@@ -51,7 +58,7 @@ impl CrateRepository {
     }
 
     pub async fn find_all(c: &mut AsyncPgConnection, limit: i64) -> QueryResult<Vec<Crate>> {
-        crates::table.limit(limit).get_results(c).await
+        crates::table.limit(limit).load(c).await
     }
 
     pub async fn create(c: &mut AsyncPgConnection, new_crate: NewCrate) -> QueryResult<Crate> {
@@ -77,6 +84,15 @@ impl CrateRepository {
     pub async fn delete(c: &mut AsyncPgConnection, id: i32) -> QueryResult<usize> {
         diesel::delete(crates::table.find(id)).execute(c).await
     }
+    pub async fn find_since(
+        c: &mut AsyncPgConnection,
+        hours_since: i32,
+    ) -> QueryResult<Vec<Crate>> {
+        crates::table
+            .filter(crates::created_at.ge(now - hours_since.hours()))
+            .load(c)
+            .await
+    }
 }
 
 pub struct UserRepository;
@@ -89,10 +105,14 @@ impl UserRepository {
             .await
     }
 
+    pub async fn find_by_id(c: &mut AsyncPgConnection, id: i32) -> QueryResult<User> {
+        users::table.find(id).get_result(c).await
+    }
+
     pub async fn create_user(
         c: &mut AsyncPgConnection,
         user: NewUser,
-        role_codes: Vec<String>,
+        role_codes: Vec<RoleCode>,
     ) -> QueryResult<User> {
         let user = diesel::insert_into(users::table)
             .values(user)
@@ -101,15 +121,16 @@ impl UserRepository {
 
         for role_code in role_codes {
             let new_user_role = {
-                if let Ok(role) = RoleRepository::find_by_code(c, role_code.to_owned()).await {
+                if let Ok(role) = RoleRepository::find_by_code(c, &role_code).await {
                     NewUserRole {
                         user_id: user.id,
                         role_id: role.id,
                     }
                 } else {
+                    let name = role_code.to_string();
                     let new_role = NewRole {
-                        code: role_code.to_owned(),
-                        name: role_code.to_owned(),
+                        code: role_code,
+                        name,
                     };
 
                     let role = RoleRepository::create_role(c, new_role).await?;
@@ -159,7 +180,7 @@ impl RoleRepository {
             .get_result(c)
             .await
     }
-    async fn find_by_code(c: &mut AsyncPgConnection, code: String) -> QueryResult<Role> {
+    async fn find_by_code(c: &mut AsyncPgConnection, code: &RoleCode) -> QueryResult<Role> {
         roles::table.filter(roles::code.eq(code)).first(c).await
     }
 
@@ -173,5 +194,23 @@ impl RoleRepository {
 
     async fn find_by_ids(c: &mut AsyncPgConnection, ids: Vec<i32>) -> QueryResult<Vec<Role>> {
         roles::table.filter(roles::id.eq_any(ids)).load(c).await
+    }
+}
+
+pub struct SessionRepository;
+impl SessionRepository {
+    pub async fn create(
+        cache: &mut deadpool_redis::Connection,
+        session_id: String,
+        user_id: i32,
+    ) -> Result<(), RedisError> {
+        cache
+            .set_ex::<String, i32, ()>(
+                format!("sessions/{}", session_id),
+                user_id,
+                3 * 60 * 60, /*3h*/
+            )
+            .await?;
+        Ok(())
     }
 }
