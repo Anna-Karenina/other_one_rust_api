@@ -1,5 +1,6 @@
 use crate::{
     auth::{authorize_user, Credentials},
+    models::User,
     repositories::{SessionRepository, UserRepository},
     rocket_routes::{server_error, CacheConn, DbConn},
 };
@@ -32,4 +33,9 @@ pub async fn login(
     Ok(json!({
         "token": session_id
     }))
+}
+
+#[rocket::get("/me")]
+pub async fn me(user: User) -> Value {
+    json!(user)
 }
