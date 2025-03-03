@@ -1,13 +1,15 @@
-use reqwest::{blocking::Client, StatusCode};
+use reqwest::StatusCode;
 use serde_json::{json, Value};
 
 pub mod common;
 
 #[test]
 fn test_create_crate() {
+    //Setup
     let client = common::get_client_with_logged_in_admin();
     let rustacean = common::create_test_rustacean(&client);
 
+    //Test
     let response = client
         .post(format!("{}/crates", common::APP_HOST))
         .json(&json!({
@@ -37,15 +39,19 @@ fn test_create_crate() {
         })
     );
 
+    //Cleanup
     common::delete_test_crate(&client, u_crate);
     common::delete_test_rustacean(&client, rustacean);
 }
 
 #[test]
 fn test_get_crate() {
+    // Setup
     let client = common::get_client_with_logged_in_admin();
     let rustacean = common::create_test_rustacean(&client);
     let u_crate = common::create_test_crate(&client, &rustacean);
+
+    //Test
 
     let response = client
         .get(format!("{}/crates/{}", common::APP_HOST, u_crate["id"]))

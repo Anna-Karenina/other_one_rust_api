@@ -20,6 +20,9 @@ services:
           postgres={url=postgres://akdb:9516623438@postgres/cr8s},
           redis={url=redis://redis:6379}
         }
+      - SMTP_HOST=smtp.freesmtpservers.com
+      - SMTP_USERNAME=
+      - SMTP_PASSWORD=
     ports:
       - 8000:8000
     volumes:

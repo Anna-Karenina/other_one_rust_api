@@ -12,7 +12,7 @@ fn test_login() {
         .arg("cli")
         .arg("users")
         .arg("create")
-        .arg("test_user")
+        .arg("test_admin")
         .arg("1234")
         .arg("admin")
         .output()
@@ -23,7 +23,7 @@ fn test_login() {
     let response = client
         .post(format!("{}/login", common::APP_HOST))
         .json(&json!({
-            "username":"test_user",
+            "username":"test_admin",
             "password":"1234"
         }))
         .send()
@@ -38,7 +38,7 @@ fn test_login() {
     let response = client
         .post(format!("{}/login", common::APP_HOST))
         .json(&json!({
-            "username":"test_user",
+            "username":"test_admin",
             "password":"12345"
         }))
         .send()

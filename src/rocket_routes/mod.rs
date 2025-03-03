@@ -11,7 +11,10 @@ use rocket_db_pools::Connection;
 use rocket_db_pools::deadpool_redis::redis::AsyncCommands;
 use serde_json::{json, Value};
 
-use crate::{models::User, repositories::UserRepository};
+use crate::{
+    models::{RoleCode, User},
+    repositories::{RoleRepository, UserRepository},
+};
 
 pub mod authorization;
 pub mod crates;
@@ -59,6 +62,40 @@ impl<'r> FromRequest<'r> for User {
                 if let Ok(user) = UserRepository::find_by_id(&mut db, user_id).await {
                     return Outcome::Success(user);
                 }
+            }
+        }
+
+        Outcome::Error((Status::Unauthorized, ()))
+    }
+}
+
+pub struct EditorUser(User);
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for EditorUser {
+    type Error = ();
+
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        let user = req
+            .guard::<User>()
+            .await
+            .expect("Cannot retrive current logged in user");
+
+        let mut db = req
+            .guard::<Connection<DbConn>>()
+            .await
+            .expect("Cannot connect to redis in request guard");
+
+        if let Ok(roles) = RoleRepository::find_by_user(&mut db, &user).await {
+            rocket::info!("Roles assign are, {:?}", roles);
+            let is_editor = roles.iter().any(|role| match role.code {
+                RoleCode::Admin => true,
+                RoleCode::Editor => true,
+                _ => false,
+            });
+            rocket::info!("Is Editor is, {}", is_editor);
+            if is_editor {
+                return Outcome::Success(EditorUser(user));
             }
         }
 

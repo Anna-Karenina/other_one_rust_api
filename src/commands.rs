@@ -1,10 +1,23 @@
+use std::str::FromStr;
+
+use chrono::{Datelike, Utc};
 use diesel_async::{AsyncConnection, AsyncPgConnection};
+use lettre::{
+    message::{header::ContentType, MessageBuilder},
+    transport::smtp::authentication::Credentials,
+    SmtpTransport, Transport,
+};
+use tera::{Context, Tera};
 
 use crate::{
     auth::hash_password,
-    models::NewUser,
-    repositories::{RoleRepository, UserRepository},
+    models::{NewUser, RoleCode},
+    repositories::{CrateRepository, RoleRepository, UserRepository},
 };
+
+fn load_template_engine() -> Tera {
+    Tera::new("templates/**/*.html").expect("Cannot load template engine")
+}
 
 async fn load_db_connection() -> AsyncPgConnection {
     let database_url = std::env::var("DATABASE_URL").expect("Cannot load DB url from env");
@@ -18,8 +31,12 @@ pub async fn create_user(username: String, password: String, role_codes: Vec<Str
     let mut c = load_db_connection().await;
     let password = hash_password(password).unwrap();
     let new_user = NewUser { username, password };
+    let role_enums = role_codes
+        .iter()
+        .map(|v| RoleCode::from_str(v.as_str()).unwrap())
+        .collect();
 
-    let user = UserRepository::create_user(&mut c, new_user, role_codes)
+    let user = UserRepository::create_user(&mut c, new_user, role_enums)
         .await
         .unwrap();
     println!("User created {:?}", user);
@@ -39,4 +56,41 @@ pub async fn list_users() {
 pub async fn delete_user(user_id: i32) {
     let mut c = load_db_connection().await;
     UserRepository::delete_user(&mut c, user_id).await.unwrap();
+}
+
+pub async fn digest_send(email: String, hours_since: i32) {
+    let mut c = load_db_connection().await;
+    let tera = load_template_engine();
+    let crates = CrateRepository::find_since(&mut c, hours_since)
+        .await
+        .unwrap();
+    if crates.len() > 0 {
+        let year = Utc::now().year();
+        let mut context = Context::new();
+        context.insert("crates", &crates);
+        context.insert("year", &year);
+
+        let html_body = tera.render("email/digest.html", &context).unwrap();
+
+        let message = MessageBuilder::new()
+            .subject("cr8s digest")
+            .from("Cr8s <noreply@cr8s.com>".parse().unwrap())
+            .to(email.parse().unwrap())
+            .header(ContentType::TEXT_HTML)
+            .body(html_body)
+            .unwrap();
+
+        let smtp_host = std::env::var("SMTP_HOST").expect("Cannot load smtp host from env");
+        let smtp_username =
+            std::env::var("SMTP_USERNAME").expect("Cannot load smtp username from env");
+        let smtp_password =
+            std::env::var("SMTP_PASSWORD").expect("Cannot load smtp password from env");
+
+        let credentials = Credentials::new(smtp_username, smtp_password);
+        let mailer = SmtpTransport::relay(&smtp_host)
+            .unwrap()
+            .credentials(credentials)
+            .build();
+        mailer.send(&message).unwrap();
+    }
 }

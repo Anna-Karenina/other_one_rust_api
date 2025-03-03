@@ -55,16 +55,16 @@ pub fn create_test_crate(client: &Client, rustacean: &Value) -> Value {
     response.json().unwrap()
 }
 
-pub fn get_client_with_logged_in_admin() -> Client {
+pub fn get_logged_in_client(username: &str, role: &str) -> Client {
     let _ = Command::new("cargo")
         .arg("run")
         .arg("--bin")
         .arg("cli")
         .arg("users")
         .arg("create")
-        .arg("test_user")
+        .arg(username)
         .arg("1234")
-        .arg("admin")
+        .arg(role)
         .output()
         .unwrap();
 
@@ -73,7 +73,7 @@ pub fn get_client_with_logged_in_admin() -> Client {
     let response = client
         .post(format!("{}/login", APP_HOST))
         .json(&json!({
-            "username":"test_user",
+            "username":username,
             "password":"1234"
         }))
         .send()
@@ -95,4 +95,12 @@ pub fn get_client_with_logged_in_admin() -> Client {
         .default_headers(headers)
         .build()
         .unwrap()
+}
+
+pub fn get_client_with_logged_in_admin() -> Client {
+    get_logged_in_client("test_admin", "admin")
+}
+
+pub fn get_client_with_logged_in_viewer() -> Client {
+    get_logged_in_client("test_viewer", "viewer")
 }

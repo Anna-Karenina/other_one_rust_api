@@ -36,6 +36,16 @@ async fn main() {
                         ),
                 ),
         )
+        .subcommand(
+            Command::new("digest-send")
+                .about("Send a digest with latest crates via email")
+                .arg(Arg::new("email").required(true))
+                .arg(
+                    Arg::new("hours_since")
+                        .required(true)
+                        .value_parser(value_parser!(i32)),
+                ),
+        )
         .get_matches();
 
     match matches.subcommand() {
@@ -67,6 +77,13 @@ async fn main() {
             }
             _ => {}
         },
+        Some(("digest-send", args)) => {
+            cr8s::commands::digest_send(
+                args.get_one::<String>("email").unwrap().to_owned(),
+                args.get_one::<i32>("hours_since").unwrap().to_owned(),
+            )
+            .await
+        }
         _ => {}
     }
 }

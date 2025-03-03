@@ -1,5 +1,5 @@
 use crate::models::User;
-use crate::rocket_routes::{server_error, DbConn};
+use crate::rocket_routes::{server_error, DbConn, EditorUser};
 use crate::{
     models::{Crate, NewCrate},
     repositories::CrateRepository,
@@ -38,7 +38,7 @@ pub async fn get_crate(
 pub async fn crate_crate(
     mut db: Connection<DbConn>,
     new_crate: Json<NewCrate>,
-    _user: User,
+    _user: EditorUser,
 ) -> Result<Custom<Value>, Custom<Value>> {
     CrateRepository::create(&mut db, new_crate.into_inner())
         .await
@@ -51,7 +51,7 @@ pub async fn update_crate(
     mut db: Connection<DbConn>,
     id: i32,
     u_crate: Json<Crate>,
-    _user: User,
+    _user: EditorUser,
 ) -> Result<Value, Custom<Value>> {
     CrateRepository::update(&mut db, id, u_crate.into_inner())
         .await
@@ -66,7 +66,7 @@ pub async fn update_crate(
 pub async fn delete_crates(
     mut db: Connection<DbConn>,
     id: i32,
-    _user: User,
+    _user: EditorUser,
 ) -> Result<NoContent, Custom<Value>> {
     CrateRepository::delete(&mut db, id)
         .await
